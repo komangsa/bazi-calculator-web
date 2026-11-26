@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#120d0c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2f0ec" media="(prefers-color-scheme: light)">
+<title>八字 Bazi</title>
+<link rel="preload" href="fonts/wenkai.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="motion.css">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<header class="bar">
+  <button type="button" class="back" id="back" hidden><span aria-hidden="true">‹</span></button>
+  <div class="brand"><span class="seal zh" aria-hidden="true"><i>八</i><i>字</i></span><span class="name" data-i="title"></span></div>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="id">ID</button><button type="button" data-lang="en">EN</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ WELCOME ============ -->
+  <section id="welcomeView" class="view welcome" hidden>
+    <div class="w-art" id="wArt"></div>
+    <h1 class="w-title" data-i="wTitle"></h1>
+    <p class="w-sub" data-i="wSub"></p>
+    <div class="w-actions grid2">
+      <button type="button" class="ghost" id="wSkip" data-i="wSkip"></button>
+      <button type="button" class="primary" id="wStart" data-i="wStart"></button>
+    </div>
+  </section>
+
+  <!-- ============ HOME ============ -->
+  <section id="homeView" class="view" hidden>
+    <div class="intro"><h1 data-i="homeTitle"></h1><p data-i="homeSub"></p></div>
+    <div class="menu">
+      <button type="button" class="mcard" id="goSelf"><span class="mglyph zh" aria-hidden="true">命</span><span class="mt"><b data-i="mSelf"></b><small data-i="mSelfSub"></small></span><i class="chev" aria-hidden="true"></i></button>
+      <button type="button" class="mcard" id="goCouple"><span class="mglyph zh two" aria-hidden="true">合</span><span class="mt"><b data-i="mCouple"></b><small data-i="mCoupleSub"></small></span><i class="chev" aria-hidden="true"></i></button>
+      <button type="button" class="ghost mtour" id="goTour" data-i="mTour"></button>
+    </div>
+    <section id="hist" class="saved" hidden>
+      <h2 data-i="history"></h2>
+      <ul id="histList"></ul>
+    </section>
+  </section>
+
+  <!-- ============ SELF INPUT ============ -->
+  <section id="formView" class="view" hidden>
+    <div class="intro">
+      <h1 data-i="lead"></h1>
+      <p data-i="sub"></p>
+    </div>
+    <form id="f" autocomplete="off" novalidate>
+      <div class="field"><label for="name" data-i="name"></label><input type="text" id="name" maxlength="40" data-ph="namePh"></div>
+      <div class="row2 grid2">
+        <div class="field"><label for="date" data-i="date"></label><input type="date" id="date" min="1900-01-01" max="2100-12-31"></div>
+        <div class="field"><label for="time" data-i="time"></label><input type="time" id="time" value="12:00"></div>
+      </div>
+      <label class="switch"><input type="checkbox" id="notime"><span class="track" aria-hidden="true"></span><span data-i="notime"></span></label>
+      <div class="field"><span class="lbl" id="gLbl" data-i="gender"></span>
+        <div class="seg" role="radiogroup" aria-labelledby="gLbl">
+          <input type="radio" name="g" id="gm" value="M" checked><label for="gm"><b class="zh">乾</b><span data-i="male"></span></label>
+          <input type="radio" name="g" id="gf" value="F"><label for="gf"><b class="zh">坤</b><span data-i="female"></span></label>
+        </div>
+      </div>
+      <div class="field"><label for="tz" data-i="tz"></label><select id="tz"></select><p class="help" data-i="tzHint"></p></div>
+      <details class="adv">
+        <summary data-i="advanced"></summary>
+        <div class="row2 grid2">
+          <div class="field"><label for="city" data-i="city"></label><select id="city"></select></div>
+          <div class="field"><label for="lon" data-i="lon"></label><input type="text" id="lon" inputmode="decimal" placeholder="106.85"></div>
+        </div>
+        <label class="switch"><input type="checkbox" id="eot"><span class="track" aria-hidden="true"></span><span data-i="eot"></span></label>
+        <label class="switch"><input type="checkbox" id="late" checked><span class="track" aria-hidden="true"></span><span data-i="late"></span></label>
+      </details>
+      <p class="err" id="err" role="alert" hidden></p>
+      <button class="primary" type="submit"><span data-i="calc"></span><span class="zh">排盘</span></button>
+    </form>
+  </section>
+
+  <!-- ============ SELF RESULT ============ -->
+  <section id="resView" class="view" hidden>
+    <div class="who"><h1 id="whoName"></h1><p id="whoMeta"></p></div>
+    <div class="chart" id="chart" aria-label="Four pillars"></div>
+    <p class="hint-tap" id="hint"></p>
+    <p class="fine" id="meta"></p>
+    <div class="actions grid3">
+      <button type="button" class="ghost" id="edit" data-i="edit"></button>
+      <button type="button" class="ghost" id="save" data-i="save"></button>
+      <button type="button" class="ghost" id="share" data-i="share"></button>
+    </div>
+    <section class="block">
+      <h2 data-i="dm"></h2>
+      <div id="dm" class="dm"></div>
+      <div id="str" class="str"></div>
+    </section>
+    <section class="block">
+      <h2 data-i="elements"></h2>
+      <div class="ribbon" id="ribbon" role="img"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <section class="block ana">
+      <h2 data-i="anaTitle"></h2>
+      <div class="tabs" id="anaTabs" role="tablist"></div>
+      <div id="anaBody" class="ana-body" role="tabpanel"></div>
+    </section>
+    <section class="block">
+      <div class="bh"><h2 data-i="luck"></h2><span class="fine" id="luckmeta"></span></div>
+      <div class="strip" id="luck"></div>
+    </section>
+    <section class="block">
+      <h2 data-i="annual"></h2>
+      <div class="strip small" id="annual"></div>
+    </section>
+    <p class="disc" data-i="disc"></p>
+  </section>
+
+  <!-- ============ COUPLE INPUT ============ -->
+  <section id="coupleView" class="view" hidden>
+    <div class="intro"><h1 data-i="cTitle"></h1><p data-i="cSub"></p></div>
+    <button type="button" class="ghost use-mine" id="useMine" data-i="useMine"></button>
+    <form id="cForm" autocomplete="off" novalidate></form>
+  </section>
+
+  <!-- ============ MATCH RESULT ============ -->
+  <section id="matchView" class="view" hidden>
+    <div id="matchOut"></div>
+    <div class="actions grid2">
+      <button type="button" class="ghost" id="mEdit" data-i="edit"></button>
+      <button type="button" class="ghost" id="mShare" data-i="share"></button>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="astronomy.browser.min.js"></script>
+<script src="bazi.js"></script>
+<script src="analysis.js"></script>
+<script src="motion.js"></script>
+<script src="app.js"></script>
+<script src="shell.js"></script>
+</body>
+</html>
