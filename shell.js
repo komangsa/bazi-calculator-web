@@ -12,7 +12,8 @@
     id: {
       wTitle: 'Peta hidup dalam empat pilar', wSub: 'Bazi dengan perhitungan astronomis, analisis karier, tahun baik dan buruk, serta kecocokan pasangan.',
       wStart: 'Mulai', wSkip: 'Lewati panduan',
-      homeTitle: 'Mau menghitung apa?', homeSub: 'Bagan diri sendiri, atau cocokkan dua orang.',
+      homeTitle: 'Mau membaca apa?', homeSub: 'Bagan diri sendiri, atau cocokkan dua orang.',
+      todayL: 'Hari ini', todayNote: (gz, el, yy, an, clashAn, clashZh) => `Hari ${gz}: ${el} ${yy} di atas ${an}. Bertabrakan (冲) dengan shio ${clashAn} (${clashZh}).`,
       mSelf: 'Bazi diri sendiri', mSelfSub: 'Empat pilar, karier, tahun baik dan buruk', mCouple: 'Kecocokan pasangan', mCoupleSub: 'Dua bagan dicocokkan menurut tradisi 合婚', mTour: 'Panduan singkat',
       anaTitle: 'Analisis mendalam', tabs: ['Ringkas', 'Karier', 'Tahun', 'Asmara', 'Sehat'],
       factors: 'Tiga ukuran kekuatan', structure: 'Struktur bagan (格局)', useful: 'Elemen pendukung (用神)', avoid: 'Elemen dihindari (忌神)',
@@ -38,6 +39,7 @@
       wTitle: 'A life map in four pillars', wSub: 'Bazi with astronomical calculation, career analysis, good and bad years, and couple compatibility.',
       wStart: 'Get started', wSkip: 'Skip the guide',
       homeTitle: 'What would you like to read?', homeSub: 'Your own chart, or match two people.',
+      todayL: 'Today', todayNote: (gz, el, yy, an, clashAn, clashZh) => `A ${gz} day: ${yy} ${el} over the ${an}. It clashes (冲) with the ${clashAn} (${clashZh}).`,
       mSelf: 'My Bazi', mSelfSub: 'Four pillars, career, good and bad years', mCouple: 'Couple match', mCoupleSub: 'Two charts matched by 合婚 tradition', mTour: 'Quick guide',
       anaTitle: 'In-depth analysis', tabs: ['Basics', 'Career', 'Years', 'Love', 'Health'],
       factors: 'Three measures of strength', structure: 'Chart structure (格局)', useful: 'Favourable elements (用神)', avoid: 'Elements to avoid (忌神)',
@@ -82,6 +84,7 @@
         window.scrollTo(0, 0);
         if (after) after();
         if (id === 'welcomeView') playWelcome();
+        if (id === 'homeView') renderToday();
       });
     }
   };
@@ -117,14 +120,15 @@
     const ILL = [
       () => `<div class="ill ill-pillars">${[['甲', 0, '子', 4], ['丙', 1, '寅', 0], ['戊', 2, '午', 1], ['庚', 3, '申', 3]].map((c, i) => `<div class="ip" style="--i:${i}">${ch(c[0], c[1])}${ch(c[2], c[3])}</div>`).join('')}</div>`,
       () => {
-        const pos = [0, 1, 2, 3, 4].map(k => { const a = -Math.PI / 2 + k * 2 * Math.PI / 5; return [110 + 78 * Math.cos(a), 110 + 78 * Math.sin(a)]; });
-        const arc = (p, q) => { const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2, dx = mx - 110, dy = my - 110, k = 1.28; return `M${p[0]} ${p[1]} Q${110 + dx * k} ${110 + dy * k} ${q[0]} ${q[1]}`; };
-        const gen = pos.map((p, k) => `<path class="gen" style="--i:${k}" d="${arc(p, pos[(k + 1) % 5])}" pathLength="1"/>`).join('');
-        const ctl = pos.map((p, k) => `<line class="ctl" style="--i:${k}" x1="${p[0]}" y1="${p[1]}" x2="${pos[(k + 2) % 5][0]}" y2="${pos[(k + 2) % 5][1]}" pathLength="1"/>`).join('');
-        const nodes = pos.map((p, k) => `<g class="node" style="--i:${k}" transform="translate(${p[0]} ${p[1]})"><circle r="21"/><text class="zh ${ECLS[k]}" dy="7">${EL_CH[k]}</text></g>`).join('');
-        return `<div class="ill"><svg class="ill-wx" viewBox="0 0 220 220">${ctl}${gen}${nodes}</svg></div>`;
+        // generating cycle as ONE continuous stroke (constant speed), nodes light up as the stroke reaches them,
+        // then the controlling star draws through. Nodes sit in an outer translate <g> so CSS scale never fights the SVG transform.
+        const C = 110, R = 78, pos = [0, 1, 2, 3, 4].map(k => { const a = -Math.PI / 2 + k * 2 * Math.PI / 5; return [C + R * Math.cos(a), C + R * Math.sin(a)]; });
+        const ring = `M${C} ${C - R} A${R} ${R} 0 1 1 ${C} ${C + R} A${R} ${R} 0 1 1 ${C} ${C - R}`;
+        const star = `M${[0, 2, 4, 1, 3].map(k => pos[k].map(v => v.toFixed(2)).join(' ')).join(' L')} Z`;
+        const nodes = pos.map((p, k) => `<g transform="translate(${p[0].toFixed(2)} ${p[1].toFixed(2)})"><g class="node" style="--i:${k}"><circle r="21"/><text class="zh ${ECLS[k]}" dy="7">${EL_CH[k]}</text></g></g>`).join('');
+        return `<div class="ill"><svg class="ill-wx" viewBox="0 0 220 220"><path class="ctl" d="${star}" pathLength="1"/><path class="gen" d="${ring}" pathLength="1"/>${nodes}</svg></div>`;
       },
-      () => `<div class="ill ill-bars">${[2.5, 4, -2, 1, -3.5, 3, 0.5, -1].map((v, i) => `<div class="ib" style="--i:${i}"><i class="${v >= 0 ? 'up' : 'dn'}" style="--h:${Math.abs(v) / 4 * 46}px"></i><small>${new Date().getFullYear() + i}</small></div>`).join('')}</div>`,
+      () => `<div class="ill ill-bars"><div class="ib-axis" aria-hidden="true"></div>${[2.5, 4, -2, 1, -3.5, 3, 0.5, -1].map((v, i) => `<div class="ib" style="--i:${i}"><i class="${v >= 0 ? 'up' : 'dn'}" style="--h:${Math.abs(v) / 4 * 46}px"></i><small>${new Date().getFullYear() + i}</small></div>`).join('')}</div>`,
       () => `<div class="ill ill-match"><span class="ms l zh">甲</span><span class="ms r zh">己</span><span class="mh zh">合</span></div>`
     ];
     function build() {
@@ -235,6 +239,21 @@
   $('#goCouple').onclick = () => { fillCoupleDefaults(); Nav.go('coupleView'); };
   $('#goTour').onclick = () => Tour.open(false);
 
+  /* today's almanac: the four pillars of this moment, plus the day's clash (冲) */
+  function renderToday() {
+    const n = new Date(), L = A.t(), x = X();
+    let r;
+    try { r = Bazi.calc({ year: n.getFullYear(), month: n.getMonth() + 1, day: n.getDate(), hour: n.getHours(), minute: n.getMinutes(), tz: -n.getTimezoneOffset() / 60, gender: 'M', lateZi: true }); }
+    catch (e) { $('#today').hidden = true; return; }
+    const KEY = { year: '年', month: '月', day: '日', hour: '时' };
+    const day = r.pillars.find(p => p.key === 'day'), clash = (day.b + 6) % 12, de = Bazi.elOf(day.s);
+    const date = n.toLocaleDateString(A.lang() === 'id' ? 'id-ID' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    $('#today').innerHTML = `<div class="td-head"><span class="td-l"><span class="zh">今日</span>${x.todayL}</span><span class="td-d">${date}</span></div>
+      <div class="td-p">${r.pillars.slice().reverse().map(p => `<div class="${p.key === 'day' ? 'me' : ''}"><small class="zh">${KEY[p.key]}</small>${ch(S[p.s], Bazi.elOf(p.s))}${ch(BR[p.b], Bazi.brEl(p.b))}</div>`).join('')}</div>
+      <p class="td-note">${x.todayNote(S[day.s] + BR[day.b], L.el[de], day.s % 2 ? L.yin : L.yang, L.animals[day.b], L.animals[clash], BR[clash])}</p>`;
+  }
+  clearInterval(renderToday.t); renderToday.t = setInterval(() => { if (!$('#homeView').hidden) renderToday(); }, 60000);
+
   /* ================= in-depth analysis ================= */
   let anaTab = 0, anaData = null, anaCtx = null;
   const elTag = e => `<span class="etag ${ECLS[e]}">${ch(EL_CH[e], e)}${AN.T[A.lang()].el[e]}</span>`;
@@ -338,26 +357,45 @@
       <div class="field"><span class="lbl" data-i="gender"></span><div class="seg" role="radiogroup">
         <input type="radio" name="${p}g" id="${p}gm" value="M" ${p === 'A' ? 'checked' : ''}><label for="${p}gm"><b class="zh">乾</b><span data-i="male"></span></label>
         <input type="radio" name="${p}g" id="${p}gf" value="F" ${p === 'B' ? 'checked' : ''}><label for="${p}gf"><b class="zh">坤</b><span data-i="female"></span></label></div></div>
+      <div class="place" id="${p}place">
+        <div class="field"><label for="${p}pc" data-i="country"></label><select id="${p}pc" class="pc"></select></div>
+        <div class="row2 grid2"><div class="field"><label for="${p}ps" data-i="state"></label><select id="${p}ps" class="ps"></select></div>
+        <div class="field"><label for="${p}pt" data-i="city"></label><select id="${p}pt" class="pt"></select></div></div>
+      </div>
       <div class="field"><label for="${p}tz" data-i="tz"></label><select id="${p}tz"></select></div></fieldset>`;
   }
   $('#cForm').innerHTML = `<div class="cgrid">${personForm('A')}${personForm('B')}</div>
     <p class="err" id="cErr" role="alert" hidden></p>
     <button class="primary" type="submit"><span data-i="cCalc"></span><span class="zh">合婚</span></button>`;
+  const places = {}, lonOf = {};
+  const setTzSel = (sel, off) => {
+    if (off == null || isNaN(off)) return; const v = String(off);
+    if (![...sel.options].some(o => o.value === v)) { const after = [...sel.options].find(o => parseFloat(o.value) > off); sel.add(new Option(A.fmtTz(off), v), after || null); }
+    sel.value = v;
+  };
   ['A', 'B'].forEach(p => {
-    $(`#${p}tz`).innerHTML = $('#tz').innerHTML;
-    $(`#${p}notime`).addEventListener('change', e => { $(`#${p}time`).disabled = e.target.checked; });
+    $(`#${p}tz`).innerHTML = [...$('#tz').options].filter(o => !o.dataset.extra).map(o => `<option value="${o.value}">${o.textContent}</option>`).join('');
+    places[p] = Place.mount({
+      root: $(`#${p}place`), lang: A.lang, t: A.t, date: () => $(`#${p}date`).value, time: () => $(`#${p}notime`).checked ? '12:00' : $(`#${p}time`).value,
+      onPick: i => { lonOf[p] = i ? i.lon : null; if (i) setTzSel($(`#${p}tz`), i.off); }
+    });
+    const re = () => { const i = places[p].info(); if (i) setTzSel($(`#${p}tz`), i.off); };
+    $(`#${p}date`).addEventListener('change', re); $(`#${p}time`).addEventListener('change', re);
+    $(`#${p}notime`).addEventListener('change', e => { $(`#${p}time`).disabled = e.target.checked; re(); });
   });
   $('#useMine').onclick = () => { const d = A.store.get('bz_last', null); if (d) { setPerson('A', d); M.haptic('success'); } };
   function setPerson(p, d) {
     $(`#${p}name`).value = d.name || ''; $(`#${p}date`).value = d.date || ''; $(`#${p}time`).value = d.time || '12:00';
-    $(`#${p}notime`).checked = !!d.noTime; $(`#${p}time`).disabled = !!d.noTime; $(`#${p}tz`).value = String(d.tz ?? 7);
+    $(`#${p}notime`).checked = !!d.noTime; $(`#${p}time`).disabled = !!d.noTime; setTzSel($(`#${p}tz`), d.tz ?? 7);
     $(`#${p}${d.gender === 'F' ? 'gf' : 'gm'}`).checked = true;
+    lonOf[p] = d.lon ?? null;
+    places[p].set(d.place || null);
   }
   function fillCoupleDefaults() {
     const c = A.store.get('bz_couple', null);
     if (c) { setPerson('A', c.a); setPerson('B', c.b); return; }
     const me = A.store.get('bz_last', null);
-    ['A', 'B'].forEach(p => { $(`#${p}tz`).value = $('#tz').value; });
+    ['A', 'B'].forEach(p => { $(`#${p}tz`).value = $('#tz').value; places[p].set(me && me.place ? { cc: me.place.cc } : { cc: A.lang() === 'id' ? 'ID' : '' }); });
     if (me) setPerson('A', me);
   }
   function readPerson(p) {
@@ -365,9 +403,11 @@
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
     if (!m || +m[1] < 1900 || +m[1] > 2100) return { err: L.errDate, el: `#${p}date` };
     if (!noTime && !/^\d{2}:\d{2}/.test(time)) return { err: L.errTime, el: `#${p}time` };
-    return { name: $(`#${p}name`).value.trim(), date, time: noTime ? '' : time.slice(0, 5), noTime, tz: parseFloat($(`#${p}tz`).value), gender: document.querySelector(`input[name=${p}g]:checked`).value };
+    const pl = places[p].get();
+    return { name: $(`#${p}name`).value.trim(), date, time: noTime ? '' : time.slice(0, 5), noTime, tz: parseFloat($(`#${p}tz`).value), gender: document.querySelector(`input[name=${p}g]:checked`).value,
+      place: pl, lon: pl && pl.lon != null ? pl.lon : (lonOf[p] ?? null) };
   }
-  const calcP = d => { const [y, mo, da] = d.date.split('-').map(Number), [hh, mm] = (d.time || '12:00').split(':').map(Number); return Bazi.calc({ year: y, month: mo, day: da, hour: hh, minute: mm, tz: d.tz, gender: d.gender, noTime: d.noTime, lateZi: true }); };
+  const calcP = d => { const [y, mo, da] = d.date.split('-').map(Number), [hh, mm] = (d.time || '12:00').split(':').map(Number); return Bazi.calc({ year: y, month: mo, day: da, hour: hh, minute: mm, tz: d.tz, lon: d.lon ?? null, gender: d.gender, noTime: d.noTime, lateZi: true }); };
   let lastMatch = null, cBusy = false;
   $('#cForm').addEventListener('submit', ev => {
     ev.preventDefault();
@@ -414,20 +454,25 @@
     if (animate) M.haptic(m.band <= 1 ? 'success' : 'light');
   }
   $('#mEdit').onclick = () => Nav.go('coupleView');
-  $('#mShare').onclick = async () => {
+  $('#mShare').onclick = () => {
     if (!lastMatch || !lastMatch.m) return;
-    const { a, b, ra, rb, m } = lastMatch, x = X();
+    const { a, b, ra, rb, m } = lastMatch, x = X(), L = A.t();
     const gz = r => r.pillars.map(p => S[p.s] + BR[p.b]).join(' ');
-    const text = [`合婚 ${a.name || x.pA} + ${b.name || x.pB}`, `${x.mScore}: ${m.score}/100, ${m.bandLabel}`, `${a.name || x.pA}: ${gz(ra)}`, `${b.name || x.pB}: ${gz(rb)}`,
-      ...m.items.map(i => `${i.pts > 0 ? '+' : ''}${i.pts} ${i.zh}`)].join('\n');
-    const cap = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
-    try { if (cap) await cap.share({ title: 'Bazi', text }); else if (navigator.share) await navigator.share({ title: 'Bazi', text }); else { await navigator.clipboard.writeText(text); A.toast(A.t().copied); } }
-    catch (e) { if (e && e.name === 'AbortError') return; try { await navigator.clipboard.writeText(text); A.toast(A.t().copied); } catch (_) {} }
+    const nA = a.name || x.pA, nB = b.name || x.pB;
+    const text = [`合婚 ${nA} + ${nB}`, `${x.mScore}: ${m.score}/100, ${m.bandLabel}`, `${nA}: ${gz(ra)}`, `${nB}: ${gz(rb)}`].join('\n');
+    const person = (n, d, r) => ({ name: n, date: A.fmtDate(d.date), dm: S[r.dm], de: Bazi.elOf(r.dm),
+      pillars: r.pillars.slice().reverse().map(p => ({ s: S[p.s], b: BR[p.b], se: Bazi.elOf(p.s), be: Bazi.brEl(p.b), me: p.key === 'day' })) });
+    const items = m.items.slice().sort((p, q) => Math.abs(q.pts) - Math.abs(p.pts)).map(i => ({ pts: i.pts, zh: i.zh, name: x.grp[i.group] }));
+    const card = () => ShareCard.matchCard({ a: person(nA, a, ra), b: person(nB, b, rb), score: m.score, band: m.band, bandLabel: m.bandLabel, scoreLbl: x.mScore, items, L, note: x.mDisc });
+    const slug = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+    ShareCard.preview(card, `hehun-${slug(nA) || 'a'}-${slug(nB) || 'b'}.png`, text, L);
   };
 
   /* ================= language + boot ================= */
   window.onLangChange = () => {
     Tour.refresh();
+    if (!$('#homeView').hidden) renderToday();
+    places.A.refreshLang(); places.B.refreshLang();
     if (!$('#matchView').hidden) renderMatch(false);
   };
   A.applyLang();

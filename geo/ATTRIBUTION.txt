@@ -1,0 +1,5 @@
+Birthplace data: GeoNames, https://www.geonames.org/
+License: Creative Commons Attribution 4.0, https://creativecommons.org/licenses/by/4.0/
+Source files: cities1000, countryInfo, admin1CodesASCII.
+Data was reorganized into per-country files. Coordinates were rounded, duplicate place names grouped, and Indonesian province names localized.
+Coverage is not exhaustive. A manual UTC offset and longitude remain available in the personal chart form.

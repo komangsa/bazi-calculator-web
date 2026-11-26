@@ -12,6 +12,9 @@
       tz:'Zona waktu saat lahir', notime:'Jam lahir tidak diketahui',
       tzHint:'Pilih zona yang berlaku saat itu. Jawa dan Sumatra memakai UTC+7:30 pada 1950 sampai 1963.',
       advanced:'Pengaturan lanjutan', lon:'Bujur', city:'Kota',
+      place:'Tempat lahir', country:'Negara', state:'Provinsi', pickCountry:'Pilih negara', pickState:'Pilih provinsi', pickCity:'Pilih kota', otherArea:'Lainnya',
+      lonHint:'Terisi otomatis dari kota. Dipakai untuk koreksi waktu lokal.', tzAuto:z=>`Terisi otomatis dari kota (${z}), sesuai aturan yang berlaku pada tanggal lahir. Bisa diubah.`,
+      shareImg:'Bagikan gambar', imgSaved:'Gambar disimpan', shareFail:'Gagal membagikan gambar', luckNow:'Pilar keberuntungan', yearNow:'Tahun ini',
       eot:'Pakai waktu surya sejati', late:'Jam 23.00 sampai 24.00 masuk hari berikutnya',
       calc:'Hitung', edit:'Ubah', back:'Kembali',
       dm:'Day Master', elements:'Lima elemen', luck:'Pilar keberuntungan', annual:'Pilar tahunan',
@@ -41,6 +44,9 @@
       tz:'Time zone at birth', notime:'Birth time unknown',
       tzHint:'Pick the zone in force at the time. Java and Sumatra used UTC+7:30 from 1950 to 1963.',
       advanced:'Advanced settings', lon:'Longitude', city:'City',
+      place:'Place of birth', country:'Country', state:'State / province', pickCountry:'Choose a country', pickState:'Choose a state', pickCity:'Choose a city', otherArea:'Other',
+      lonHint:'Filled in from the city. Used for the local time correction.', tzAuto:z=>`Filled in from the city (${z}), using the rules in force on the birth date. You can change it.`,
+      shareImg:'Share image', imgSaved:'Image saved', shareFail:'Could not share the image', luckNow:'Luck pillar', yearNow:'This year',
       eot:'Use true solar time', late:'Count 23:00 to 24:00 as the next day',
       calc:'Calculate', edit:'Edit', back:'Back',
       dm:'Day Master', elements:'Five elements', luck:'Luck pillars', annual:'Annual pillars',
@@ -65,9 +71,6 @@
       elDesc:['Growth, expansion, kindness.','Drive, expression, warmth.','Stability, holding, trust.','Decisiveness, order, justice.','Flow, intelligence, adaptability.']
     }
   };
-  const CITIES = [['Jakarta',106.85,7],['Bandung',107.61,7],['Semarang',110.42,7],['Yogyakarta',110.37,7],['Surabaya',112.75,7],['Malang',112.63,7],['Medan',98.67,7],['Palembang',104.76,7],['Pekanbaru',101.45,7],['Padang',100.36,7],['Pontianak',109.33,7],
-    ['Denpasar',115.22,8],['Makassar',119.41,8],['Balikpapan',116.83,8],['Banjarmasin',114.59,8],['Manado',124.84,8],['Kupang',123.6,8],['Ambon',128.18,9],['Jayapura',140.72,9],
-    ['Singapore',103.82,8],['Kuala Lumpur',101.69,8],['Bangkok',100.5,7],['Manila',120.98,8],['Hong Kong',114.17,8],['Taipei',121.56,8],['Beijing',116.4,8],['Shanghai',121.47,8],['Guangzhou',113.26,8],['Tokyo',139.69,9],['Seoul',126.98,9],['Sydney',151.21,10],['London',-0.13,0],['New York',-74.0,-5],['Los Angeles',-118.24,-8]];
   const TZS = [-12,-11,-10,-9.5,-9,-8,-7,-6,-5,-4,-3.5,-3,-2,-1,0,1,2,3,3.5,4,4.5,5,5.5,5.75,6,6.5,7,7.5,8,8.5,8.75,9,9.5,10,10.5,11,12,12.75,13,14];
   const TZ_NAME = { 7:'  WIB', 8:'  WITA', 9:'  WIT' };
   const fmtTz = h => { const s = h < 0 ? '-' : '+', a = Math.abs(h), hh = Math.floor(a), mm = Math.round((a - hh) * 60); return `UTC${s}${hh}${mm ? ':' + String(mm).padStart(2, '0') : ''}${TZ_NAME[h] || ''}`; };
@@ -78,13 +81,28 @@
   let last = null, lastInput = null;
   const t = () => T[lang];
 
-  const tzSel = $('#tz'), cSel = $('#city');
+  const tzSel = $('#tz');
   TZS.forEach(h => tzSel.add(new Option(fmtTz(h), h)));
   const devTz = -new Date().getTimezoneOffset() / 60;
   tzSel.value = String(TZS.includes(devTz) ? devTz : 7);
-  function fillCities() { const v = cSel.value; cSel.innerHTML = ''; cSel.add(new Option(t().pick, '')); CITIES.forEach((c, i) => cSel.add(new Option(c[0], i))); cSel.value = v; }
-  cSel.addEventListener('change', () => { const c = CITIES[cSel.value]; if (c) { $('#lon').value = c[1]; tzSel.value = String(c[2]); } });
-  $('#notime').addEventListener('change', e => { $('#time').disabled = e.target.checked; });
+  /* set a tz <select> to an offset, adding a one-off option for historical offsets (e.g. local mean time) */
+  function setTz(sel, off) {
+    if (off == null || isNaN(off)) return;
+    const v = String(off);
+    if (![...sel.options].some(o => o.value === v)) {
+      const o = new Option(fmtTz(off), v); o.dataset.extra = '1';
+      const after = [...sel.options].find(x => parseFloat(x.value) > off); sel.add(o, after || null);
+    }
+    sel.value = v;
+  }
+  const place = Place.mount({
+    root: $('#placeSelf'), lang: () => lang, t: () => T[lang], date: () => $('#date').value, time: () => $('#notime').checked ? '12:00' : $('#time').value,
+    onPick: i => { $('#lon').value = i ? i.lon : ''; if (i) setTz(tzSel, i.off); tzHelp(i); }
+  });
+  function tzHelp(i) { const h = $('#tzHelp'); h.textContent = i ? T[lang].tzAuto(i.iana) : T[lang].tzHint; }
+  const reTz = () => { const i = place.info(); if (i) setTz(tzSel, i.off); };
+  $('#date').addEventListener('change', reTz); $('#time').addEventListener('change', reTz);
+  $('#notime').addEventListener('change', e => { $('#time').disabled = e.target.checked; reTz(); });
 
   function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2000); }
 
@@ -94,8 +112,9 @@
     document.querySelectorAll('[data-i]').forEach(n => { const v = xt(n.dataset.i); if (typeof v === 'string') n.textContent = v; });
     document.querySelectorAll('[data-ph]').forEach(n => n.placeholder = xt(n.dataset.ph) || '');
     $('#back').setAttribute('aria-label', t().back);
+    document.querySelectorAll('.pg').forEach(b => b.setAttribute('aria-label', lang === 'id' ? (b.classList.contains('prev') ? 'Pilar sebelumnya' : 'Pilar berikutnya') : (b.classList.contains('prev') ? 'Previous pillars' : 'Next pillars')));
     document.querySelectorAll('.lang button').forEach(b => { b.classList.toggle('on', b.dataset.lang === lang); b.setAttribute('aria-pressed', b.dataset.lang === lang); });
-    fillCities(); renderHistory();
+    place.refreshLang(); tzHelp(place.info()); renderHistory();
     if (last) render(last, lastInput, false);
     if (window.onLangChange) window.onLangChange(lang);
   }
@@ -163,9 +182,48 @@
     if (animate) Motion.reveal([...document.querySelectorAll('#resView .block')]);
     else document.querySelectorAll('#resView .block').forEach(b => b.classList.add('seen'));
     if (window.renderAnalysis) window.renderAnalysis(r, d, animate);
-    // keep the current luck pillar in view on phones
-    requestAnimationFrame(() => { const n = $('#luck .now'); if (n && $('#luck').scrollWidth > $('#luck').clientWidth) $('#luck').scrollLeft = Math.max(0, n.offsetLeft - 16 - 88); });
+    // keep the current period in view, aligned to the snap edge with one earlier item visible
+    requestAnimationFrame(() => { Strips.focus($('#luck')); Strips.focus($('#annual')); });
   }
+
+  /* horizontal strips: arrow pager, mouse drag, edge fades (touch uses native scroll) */
+  const Strips = window.Strips = (() => {
+    const pad = el => parseFloat(getComputedStyle(el).paddingLeft) || 0;
+    function update(el) {
+      const pg = document.querySelector(`.pager[data-for="${el.id}"]`), max = el.scrollWidth - el.clientWidth - 2;
+      el.classList.toggle('at-start', el.scrollLeft <= 2); el.classList.toggle('at-end', el.scrollLeft >= max);
+      if (pg) { pg.hidden = max <= 0; pg.querySelector('.prev').disabled = el.scrollLeft <= 2; pg.querySelector('.next').disabled = el.scrollLeft >= max; }
+    }
+    function step(el, dir) {
+      const items = [...el.children], w = items[0] ? items[0].offsetWidth + parseFloat(getComputedStyle(el).columnGap || 0) : 80;
+      const n = Math.max(1, Math.floor((el.clientWidth - pad(el) * 2) / w) - 1);
+      el.scrollBy({ left: dir * n * w, behavior: Motion.reduced() ? 'auto' : 'smooth' });
+    }
+    function bind(el) {
+      el.addEventListener('scroll', () => update(el), { passive: true });
+      const pg = document.querySelector(`.pager[data-for="${el.id}"]`);
+      if (pg) { pg.querySelector('.prev').onclick = () => step(el, -1); pg.querySelector('.next').onclick = () => step(el, 1); }
+      let x0 = 0, s0 = 0, drag = false, moved = false, pid = null;
+      el.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button !== 0) return; drag = true; moved = false; pid = e.pointerId; x0 = e.clientX; s0 = el.scrollLeft; });
+      el.addEventListener('pointermove', e => {
+        if (!drag || e.pointerId !== pid) return;
+        const dx = e.clientX - x0;
+        if (!moved && Math.abs(dx) > 5) { moved = true; el.setPointerCapture(pid); el.classList.add('dragging'); }
+        if (moved) el.scrollLeft = s0 - dx;
+      });
+      const end = () => { if (!drag) return; drag = false; if (moved) { el.classList.remove('dragging'); setTimeout(() => { moved = false; }, 0); } };
+      el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+      el.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); } }, true);
+      addEventListener('resize', () => update(el));
+    }
+    function focus(el) {
+      const n = el.querySelector('.now');
+      if (n) { const prev = n.previousElementSibling || n; el.scrollLeft = Math.max(0, prev.offsetLeft - pad(el)); }
+      update(el);
+    }
+    return { bind, focus, update };
+  })();
+  Strips.bind($('#luck')); Strips.bind($('#annual'));
 
   function readForm() {
     const L = t(), date = $('#date').value, time = $('#time').value, noTime = $('#notime').checked;
@@ -174,14 +232,15 @@
     if (!noTime && !/^\d{2}:\d{2}/.test(time)) return { err: L.errTime, el: '#time' };
     const lonRaw = $('#lon').value.trim(), lon = lonRaw === '' ? null : Number(lonRaw.replace(',', '.'));
     if (lon != null && (isNaN(lon) || lon < -180 || lon > 180)) { $('.adv').open = true; return { err: L.errLon, el: '#lon' }; }
-    return { name: $('#name').value.trim(), date, time: noTime ? '' : time.slice(0, 5), noTime, tz: parseFloat(tzSel.value), lon,
+    return { name: $('#name').value.trim(), date, time: noTime ? '' : time.slice(0, 5), noTime, tz: parseFloat(tzSel.value), lon, place: place.get(),
       gender: document.querySelector('input[name=g]:checked').value, useEot: $('#eot').checked, lateZi: $('#late').checked };
   }
   function fillForm(d) {
     $('#name').value = d.name || ''; $('#date').value = d.date; $('#time').value = d.time || '12:00';
-    $('#notime').checked = !!d.noTime; $('#time').disabled = !!d.noTime; tzSel.value = String(d.tz);
+    $('#notime').checked = !!d.noTime; $('#time').disabled = !!d.noTime; setTz(tzSel, d.tz);
     $('#lon').value = d.lon == null ? '' : d.lon; $('#eot').checked = !!d.useEot; $('#late').checked = d.lateZi !== false;
-    (d.gender === 'F' ? $('#gf') : $('#gm')).checked = true; cSel.value = '';
+    (d.gender === 'F' ? $('#gf') : $('#gm')).checked = true;
+    place.set(d.place || null).then(() => tzHelp(place.info()));
   }
   function compute(d) {
     const [y, mo, da] = d.date.split('-').map(Number), [hh, mm] = (d.time || '12:00').split(':').map(Number);
@@ -221,20 +280,28 @@
     store.set('bz_hist', h.slice(0, 30)); renderHistory(); Motion.listEnter($('#histList li')); Motion.haptic('success'); toast(t().saved);
     const sv = $('#save'); sv.classList.remove('done'); void sv.offsetWidth; sv.classList.add('done');
   };
-  $('#share').onclick = async () => {
+  $('#share').onclick = () => {
     if (!last) return;
-    const L = t(), S = Bazi.STEMS, Br = Bazi.BRANCHES, r = last;
-    const text = [`八字 ${lastInput.name || ''}`.trim(), `${fmtDate(lastInput.date)} ${lastInput.noTime ? '' : lastInput.time}`.trim(),
-      r.pillars.map(p => `${COL_ZH[p.key]} ${S[p.s]}${Br[p.b]}`).join('   '),
-      `${L.dm}: ${S[r.dm]} ${L.el[Bazi.elOf(r.dm)]}, ${L.strength[r.strength]}`,
-      `${L.fav}: ${r.favorable.map(i => L.el[i]).join(', ')}`,
-      `大运: ` + r.luck.map(l => `${l.age} ${S[l.s]}${Br[l.b]}`).join(', ')].join('\n');
-    const cap = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
-    try {
-      if (cap) await cap.share({ title: 'Bazi', text, dialogTitle: L.share });
-      else if (navigator.share) await navigator.share({ title: 'Bazi', text });
-      else { await navigator.clipboard.writeText(text); toast(L.copied); }
-    } catch (e) { if (e && e.name === 'AbortError') return; try { await navigator.clipboard.writeText(text); toast(L.copied); } catch {} }
+    const L = t(), S = Bazi.STEMS, Br = Bazi.BRANCHES, r = last, d = lastInput, now = Date.now(), cy = new Date().getFullYear();
+    const text = [`八字 ${d.name || ''}`.trim(), `${fmtDate(d.date)} ${d.noTime ? '' : d.time}`.trim(),
+      r.pillars.map(p => `${COL_ZH[p.key]} ${S[p.s]}${Br[p.b]}`).join('   ')].join('\n');
+    const cur = r.luck.findIndex((l, i) => l.fromMs <= now && (i === r.luck.length - 1 || now < r.luck[i + 1].fromMs));
+    const lk = r.luck[cur], yp = Bazi.yearPillar(cy);
+    const placeTxt = d.place && d.place.city ? d.place.city : null;
+    const card = () => ShareCard.chartCard({
+      L, name: d.name || fmtDate(d.date),
+      sub: [d.name ? fmtDate(d.date) : null, d.noTime ? L.noHour : d.time, placeTxt, fmtTz(d.tz).replace(/\s+/g, ' ')].filter(Boolean).join(', '),
+      pillars: r.pillars.slice().reverse().map(p => ({ k: COL_ZH[p.key], kl: L[p.key], god: p.god == null ? '日主' : Bazi.GODS_ZH[p.god], stem: S[p.s], branch: Br[p.b], se: Bazi.elOf(p.s), be: Bazi.brEl(p.b), animal: L.animals[p.b], me: p.key === 'day' })),
+      dmLine: `${S[r.dm]}  ${L.dmHead(PY_S[r.dm], r.dm % 2 ? L.yin : L.yang, L.el[Bazi.elOf(r.dm)])}`,
+      strength: `${L.strLbl}: ${L.strength[r.strength]}`,
+      pct: (() => { const tot = r.el.reduce((a, b) => a + b, 0); return r.el.map(v => Math.round(v / tot * 100)); })(),
+      fav: r.favorable.map(i => `${EL_CH[i]} ${L.el[i]}`).join(', '),
+      luck: [L.luckNow, lk ? `${S[lk.s]}${Br[lk.b]}  ${L.age(lk.age)}, ${lk.year} - ${lk.year + 9}` : '-'],
+      year: [`${L.yearNow} ${cy}`, `${S[yp.s]}${Br[yp.b]}  ${Bazi.GODS_ZH[Bazi.tenGod(r.dm, yp.s)]}`],
+      note: L.disc
+    });
+    const slug = (d.name || 'bazi').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'bazi';
+    ShareCard.preview(card, `bazi-${slug}.png`, text, L);
   };
 
   // Android hardware back: result -> form -> exit
@@ -287,4 +354,5 @@
   applyLang();
   const prev = store.get('bz_last', null);
   if (prev && prev.date) fillForm(prev);
+  else place.set({ cc: lang === 'id' || [7, 8, 9].includes(devTz) ? 'ID' : '' });
 })();

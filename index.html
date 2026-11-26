@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="motion.css">
 <link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="refresh.css">
 </head>
 <body>
 <header class="bar">
@@ -35,12 +36,13 @@
 
   <!-- ============ HOME ============ -->
   <section id="homeView" class="view" hidden>
-    <div class="intro"><h1 data-i="homeTitle"></h1><p data-i="homeSub"></p></div>
+    <section class="today" id="today" aria-live="polite"></section>
+    <h1 class="home-h" data-i="homeTitle"></h1>
     <div class="menu">
-      <button type="button" class="mcard" id="goSelf"><span class="mglyph zh" aria-hidden="true">命</span><span class="mt"><b data-i="mSelf"></b><small data-i="mSelfSub"></small></span><i class="chev" aria-hidden="true"></i></button>
-      <button type="button" class="mcard" id="goCouple"><span class="mglyph zh two" aria-hidden="true">合</span><span class="mt"><b data-i="mCouple"></b><small data-i="mCoupleSub"></small></span><i class="chev" aria-hidden="true"></i></button>
-      <button type="button" class="ghost mtour" id="goTour" data-i="mTour"></button>
+      <button type="button" class="entry" id="goSelf"><span class="eg zh" aria-hidden="true">命</span><span class="et"><b data-i="mSelf"></b><small data-i="mSelfSub"></small></span><i class="arr" aria-hidden="true"></i></button>
+      <button type="button" class="entry" id="goCouple"><span class="eg zh" aria-hidden="true">合</span><span class="et"><b data-i="mCouple"></b><small data-i="mCoupleSub"></small></span><i class="arr" aria-hidden="true"></i></button>
     </div>
+    <button type="button" class="textlink" id="goTour"><span data-i="mTour"></span><i class="arr" aria-hidden="true"></i></button>
     <section id="hist" class="saved" hidden>
       <h2 data-i="history"></h2>
       <ul id="histList"></ul>
@@ -66,12 +68,20 @@
           <input type="radio" name="g" id="gf" value="F"><label for="gf"><b class="zh">坤</b><span data-i="female"></span></label>
         </div>
       </div>
-      <div class="field"><label for="tz" data-i="tz"></label><select id="tz"></select><p class="help" data-i="tzHint"></p></div>
+      <fieldset class="place" id="placeSelf">
+        <legend class="lbl" data-i="place"></legend>
+        <div class="field"><label for="pcS" data-i="country"></label><select id="pcS" class="pc"></select></div>
+        <div class="row2 grid2">
+          <div class="field"><label for="psS" data-i="state"></label><select id="psS" class="ps"></select></div>
+          <div class="field"><label for="ptS" data-i="city"></label><select id="ptS" class="pt"></select></div>
+        </div>
+        <p class="geo-credit"><a href="geo/ATTRIBUTION.txt" target="_blank" rel="noopener">GeoNames</a></p>
+      </fieldset>
+      <div class="field"><label for="tz" data-i="tz"></label><select id="tz"></select><p class="help" id="tzHelp" data-i="tzHint"></p></div>
       <details class="adv">
         <summary data-i="advanced"></summary>
-        <div class="row2 grid2">
-          <div class="field"><label for="city" data-i="city"></label><select id="city"></select></div>
-          <div class="field"><label for="lon" data-i="lon"></label><input type="text" id="lon" inputmode="decimal" placeholder="106.85"></div>
+        <div class="field lonf">
+          <label for="lon" data-i="lon"></label><input type="text" id="lon" inputmode="decimal" placeholder="106.85"><p class="help" data-i="lonHint"></p>
         </div>
         <label class="switch"><input type="checkbox" id="eot"><span class="track" aria-hidden="true"></span><span data-i="eot"></span></label>
         <label class="switch"><input type="checkbox" id="late" checked><span class="track" aria-hidden="true"></span><span data-i="late"></span></label>
@@ -108,11 +118,11 @@
       <div id="anaBody" class="ana-body" role="tabpanel"></div>
     </section>
     <section class="block">
-      <div class="bh"><h2 data-i="luck"></h2><span class="fine" id="luckmeta"></span></div>
+      <div class="bh"><div><h2 data-i="luck"></h2><span class="fine" id="luckmeta"></span></div><div class="pager" data-for="luck"><button type="button" class="pg prev" aria-label="‹"></button><button type="button" class="pg next" aria-label="›"></button></div></div>
       <div class="strip" id="luck"></div>
     </section>
     <section class="block">
-      <h2 data-i="annual"></h2>
+      <div class="bh"><div><h2 data-i="annual"></h2></div><div class="pager" data-for="annual"><button type="button" class="pg prev" aria-label="‹"></button><button type="button" class="pg next" aria-label="›"></button></div></div>
       <div class="strip small" id="annual"></div>
     </section>
     <p class="disc" data-i="disc"></p>
@@ -139,6 +149,8 @@
 <script src="bazi.js"></script>
 <script src="analysis.js"></script>
 <script src="motion.js"></script>
+<script src="place.js"></script>
+<script src="share.js"></script>
 <script src="app.js"></script>
 <script src="shell.js"></script>
 </body>
